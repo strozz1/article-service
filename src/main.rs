@@ -1,25 +1,27 @@
 use std::{sync::{Mutex}};
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web::{self, Data}, post};
-use response::response::RequestId;
 use actix_web::{middleware::Logger};
+use article::Article;
+use article::repository::*;
+use article::service::*;
+use response::*;
 
 
-
-use crate::{article::{Article, ArticleRepository}, service::service::ArticleService, response::response::{Type, Response}};
 mod response;
 mod article;
-mod service;
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     //config
     dotenv::dotenv().ok();
-    let server_port = std::env::var("PORT").unwrap_or("2425".to_string());
+    let server_port = std::env::var("PORT").unwrap();
     let server_address = format!("localhost:{}", server_port);
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let db_host = std::env::var("DB_HOST").unwrap_or("localhost".to_string());
-    let db_port: u16 = std::env::var("DB_PORT").unwrap_or("27018".to_string()).parse().unwrap();
+
+    let db_host = std::env::var("DB_HOST").unwrap();
+    let db_port: u16 = std::env::var("DB_PORT").unwrap().parse().unwrap();
     
     println!("-Article service started at address {}.", server_address);
 
@@ -63,6 +65,8 @@ async fn find(article_id: web::Path<RequestId>,repo: Data<Mutex<ArticleService>>
     let service = repo.lock().unwrap(); // get repo from server
     let result = service.get_article(article_id.id.to_string()).await;
     match result {
+
+        //FIXME refactor error response
         Ok(accept) => HttpResponse::Ok().json(Response::new(Type::Ok, accept)),
         Err(err) => match err.error_type{
             Type::BadRequest =>  HttpResponse::BadRequest().json(Response::new(Type::BadRequest, err)),
@@ -80,6 +84,7 @@ async fn find(article_id: web::Path<RequestId>,repo: Data<Mutex<ArticleService>>
 
 #[post("/api/createArticle")]
 async fn create_article(json: web::Json<Article>,repo: Data<Mutex<ArticleService>>) -> impl Responder{
+    
     let service = repo.lock().unwrap(); // get repo from server
     let result = service.insert_article(json.0).await;
     match result {

@@ -1,15 +1,17 @@
-pub mod service {
 
-    use crate::article::Article;
-    use crate::article::ArticleRepository;
-    use crate::article::Repository;
-    use crate::response::response::Accept;
-    use crate::response::response::Error;
+    use super::repository::*;
+    use super::Article;
+    use super::repository::ArticleRepository;
+    use super::super::response;
+    use response::accept::Accept;
+    use response::error::Error;
+
+ 
 
     pub struct ArticleService {
         pub repository: ArticleRepository,
     }
-
+    
     impl ArticleService {
         pub fn new(repository: ArticleRepository) -> Self {
             ArticleService { repository }
@@ -23,6 +25,7 @@ pub mod service {
 
         pub async fn check_status(&self){
             self.repository.check_status();
+            //TODO check database status
         }
 
         ///Returns an article from the repository with the same ID as given
@@ -30,4 +33,4 @@ pub mod service {
             self.repository.find(id).await
         }
     }
-}
+
