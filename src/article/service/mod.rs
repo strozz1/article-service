@@ -32,5 +32,12 @@
         pub async fn get_article(&self, id: String) -> Result<Article,Error>{
             self.repository.find(id).await
         }
+
+                ///Returns a result  from the repository witha vector of articles or an error
+                pub async fn list(&self, size: i64) -> Result<Vec<Article>,Error>{
+
+                   
+                    self.repository.list(size).await
+                }
     }
 

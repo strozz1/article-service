@@ -16,7 +16,8 @@ pub struct Response<T> {
     code: u8,
     description: String,
     timestamp: DateTime,
-    content: T,
+    content_size: usize,
+    content: Vec<T>,
 }
 
 impl<T> Response<T> {
@@ -27,12 +28,29 @@ impl<T> Response<T> {
         let code = response_type.value();
         let description = response_type.description().to_string();
 
+        let mut vector = Vec::new();
+        vector.push(content);
+
         let timestamp = DateTime::now();
         Response {
             code,
             description,
             timestamp,
-            content,
+            content_size: vector.len(),
+            content: vector,
+        }
+    }
+
+    pub fn new_from_multiple(response_type: Type, vector: Vec<T>) -> Self {
+        let code = response_type.value();
+        let description = response_type.description().to_string();
+        let timestamp = DateTime::now();
+        Response {
+            code,
+            description,
+            timestamp,
+            content_size: vector.len(),
+            content: vector,
         }
     }
 }

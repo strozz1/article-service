@@ -7,6 +7,7 @@ use super::Type;
 /// Error type shows the error type and reason the more detail reason
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Error {
+    //TODO types of error
     pub error_type: Type,
     pub reason: String,
 }
