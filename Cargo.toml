@@ -1,0 +1,18 @@
+[package]
+name = "article-service"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.3.1"
+async-trait = "0.1.71"
+dotenv = "0.15.0"
+futures = "0.3.28"
+mongodb = "2.6.0"
+serde = "1.0.166"
+serde_json = "1.0.100"
+serde_repr = "0.1.14"
+tokio = "1.29.1"
+uuid = "1.4.0"
