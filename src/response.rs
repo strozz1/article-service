@@ -35,10 +35,10 @@ pub mod response {
         }
     }
 
-///Type enum represents the response type.
-/// Has 2 methods
-/// 
-/// One for getting the int value of the code and another one for the description
+    ///Type enum represents the response type.
+    /// Has 2 methods
+    ///
+    /// One for getting the int value of the code and another one for the description
     #[derive(Serialize, Deserialize, Debug)]
     pub enum Type {
         Ok,
@@ -46,6 +46,8 @@ pub mod response {
         MalformedJSON,
         Database,
         Internal,
+        DuplicateKey,
+        Write
     }
     impl Type {
         /// Returns the value from the code
@@ -56,6 +58,8 @@ pub mod response {
                 Type::MalformedJSON => 2,
                 Type::Database => 3,
                 Type::Internal => 4,
+                Type::DuplicateKey => 5,
+                Type::Write=> 6
             }
         }
         /// returns the description for each response
@@ -64,12 +68,13 @@ pub mod response {
                 Type::Ok => "Response is correct",
                 Type::BadRequest => "The request is not correctly formed.",
                 Type::MalformedJSON => "The JSON is malformed",
-                Type::Database => "Database error",
-                Type::Internal => "Internal server error",
+                Type::Database => "There is a database error",
+                Type::Internal => "Internal server error occurred",
+                Type::DuplicateKey => "Duplicate Key conflict",
+                Type::Write=> "There is a write error"
             }
         }
     }
-
 
     ///Error struct for returning to the http response.
     /// Error type shows the error type and reason the more detail reason
@@ -93,8 +98,15 @@ pub mod response {
     }
 
     impl Accept {
-        pub fn new(article_id: String,reason: String) -> Self {
-            Accept { article_id,message: reason }
+        pub fn new(article_id: String, reason: String) -> Self {
+            Accept {
+                article_id,
+                message: reason,
+            }
         }
+    }
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub struct RequestId {
+        pub id: String,
     }
 }

@@ -25,9 +25,9 @@ pub mod service {
             self.repository.check_status();
         }
 
-        //Returns an article from the repository with the same ID as given
-        // pub async fn get_article(&self, id: String) -> Result<Article,String>{
-        //     self.repository.find(id).await
-        // }
+        ///Returns an article from the repository with the same ID as given
+        pub async fn get_article(&self, id: String) -> Result<Article,Error>{
+            self.repository.find(id).await
+        }
     }
 }

@@ -53,8 +53,8 @@ impl ArticleRepository {
 #[async_trait]
 pub trait Repository<T: Serialize> {
     async fn insert(&self, data: T) -> Result<Accept, Error>;
-   // async fn find(&self, id: String) -> Result<Article, String>;
-   async fn check_status(&self) -> bool;
+    async fn check_status(&self) -> bool;
+    async fn find(&self, id: String) -> Result<Article, Error>;
 }
 
 
@@ -80,22 +80,62 @@ impl Repository<Article> for ArticleRepository {
             Ok(result) => {
                 match result {
                     Ok(_) => Ok(Accept::new(response.id, "Article saved".to_string())),
-                    Err(internalerr) => Err(Error::new(Type::Database,internalerr.to_string())),
+                    Err(err) =>{
+                        match *err.kind{
+                            error::ErrorKind::InvalidResponse { message , .. } =>return Err(Error::new(Type::Internal,message)),
+                            error::ErrorKind::InvalidArgument { message, .. } =>return Err(Error::new(Type::MalformedJSON,message)),
+                            error::ErrorKind::Authentication { message ,..} =>return Err(Error::new(Type::Internal,message)),
+                            error::ErrorKind::BsonDeserialization(err) =>return Err(Error::new(Type::MalformedJSON,err.to_string())),
+                            error::ErrorKind::BsonSerialization(err) =>return Err(Error::new(Type::MalformedJSON,err.to_string())),
+                            error::ErrorKind::Write(err) =>{
+                                match err{
+                                    error::WriteFailure::WriteConcernError(e)=>return Err(Error::new(Type::Write,e.message)),
+                                    error::WriteFailure::WriteError(e)=>return Err(Error::new(Type::Write,e.message)),
+                                    _=> return Err(Error::new(Type::Internal,"Unknown error".to_string()))
+                                }
+                            },
+                            _=> return Err(Error::new(Type::Internal,"Unexpected error".to_string()))
+                        }
+                    }
+                    
                 }
             },
             Err(err) => Err(Error::new(Type::Internal, err.to_string())), // error en tokio
         }
     }
-    // async fn find(&self, article_id: String) -> Result<Article, String> {
-    //     let collection: Collection<Article> = self
-    //         .client
-    //         .database(&self.db_name)
-    //         .collection::<Article>(&self.db_collection);
 
-    //     collection.find_one(doc! {"id": article_id}, None).await;
-    // }
+
+
+
     async fn check_status(&self) -> bool{
         // self.client.
         todo!()
+    }
+
+    async fn find(&self, article_id: String) -> Result<Article, Error> {
+        let collection: Collection<Article> = self
+            .client
+            .database(&self.db_name)
+            .collection::<Article>(&self.db_collection);
+
+        let cursor= collection.find_one(doc! {"id": article_id}, None).await;
+        match cursor {
+            Ok(article)=>{
+                match article{
+                    Some(art) => return Ok(art),
+                    None => return Err(Error::new(Type::Internal,"Unknown error".to_string())),
+                }
+            },
+            Err(err)=> {
+                match *err.kind{
+                    error::ErrorKind::InvalidResponse { message , .. } =>return Err(Error::new(Type::Internal,message)),
+                    error::ErrorKind::InvalidArgument { message, .. } =>return Err(Error::new(Type::MalformedJSON,message)),
+                    error::ErrorKind::Authentication { message ,..} =>return Err(Error::new(Type::DuplicateKey,message)),
+                    error::ErrorKind::BsonDeserialization(err) =>return Err(Error::new(Type::MalformedJSON,err.to_string())),
+                    error::ErrorKind::BsonSerialization(err) =>return Err(Error::new(Type::MalformedJSON,err.to_string())),
+                    _=> return Err(Error::new(Type::Internal,"Unexpected error".to_string()))
+                }
+            }
+        }
     }
 }
