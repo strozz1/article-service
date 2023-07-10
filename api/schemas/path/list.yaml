@@ -1,0 +1,18 @@
+parameters:
+  - name: size
+    description: The max number of elements to retreive from the database
+    in: path
+    required: true
+    schema:
+      type: number
+get:
+  summary: Get a defined number of articles from the database
+  responses:
+    '200':
+      $ref: '#/components/responses/ok'
+    '500':
+      $ref: '#/components/responses/internal'
+    '404':
+      $ref: '#/components/responses/notfound'
+    default:
+      $ref: '#/components/responses/default'

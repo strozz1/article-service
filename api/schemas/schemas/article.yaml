@@ -1,0 +1,25 @@
+description: the representation of an article
+type: object
+required:
+  - id
+  - author
+  - created_at
+  - last_update
+  - content
+properties:
+  id:
+    description: the id from the article
+    type: string
+    uniqueItems: true
+  author:
+    description: the author from the article
+    type: string
+  created_at:
+    description: the date of creation of the article
+    type: string
+  last_update:
+    description: the date of the last update time
+    type: string
+  content:
+    description: the content of the article
+    type: string

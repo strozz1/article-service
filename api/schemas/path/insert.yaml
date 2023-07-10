@@ -1,0 +1,16 @@
+parameters:
+  - name: article
+    description: The article to insert in the database
+    in: header
+    required: true
+    schema:
+      $ref: schemas/article.yaml
+post:
+  summary: Inserts one article in the database
+  responses:
+    '200':
+      $ref: '#/components/responses/ok'
+    '500':
+      $ref: '#/components/responses/internal'
+    default:
+      $ref: '#/components/responses/default'

@@ -1,0 +1,5 @@
+description: The request returned succesfully
+content:
+  application/json:
+    schema:
+      $ref: '#/components/schemas/response'

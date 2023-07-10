@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  title: Article API
+  description: "API for managing article service, retreive documents and insert new\
+    \ ones"
+  version: 0.0.1
+servers:
+- url: localhost:2425
+paths:
+  /api:
+    $ref: ./path/root.yaml
+  /api/list/{size}:
+    $ref: ./path/list.yaml
+  /api/find/{id}:
+    $ref: ./path/find.yaml
+  /api/insert:
+    $ref: ./path/insert.yaml
+components:
+  schemas: 
+    $ref: ./schemas/_index.yaml
+  responses: 
+    $ref: ./responses/_index.yaml
