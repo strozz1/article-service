@@ -69,6 +69,7 @@ pub enum Type {
     Internal,
     DuplicateKey,
     Write,
+    NotFound
 }
 impl Type {
     /// Returns the value from the code
@@ -81,6 +82,7 @@ impl Type {
             Type::Internal => 4,
             Type::DuplicateKey => 5,
             Type::Write => 6,
+            Type::NotFound => 7 
         }
     }
     /// returns the description for each response
@@ -93,6 +95,7 @@ impl Type {
             Type::Internal => "Internal server error occurred",
             Type::DuplicateKey => "Duplicate Key conflict",
             Type::Write => "There is a write error",
+            Type::NotFound => "User not found"
         }
     }
 }

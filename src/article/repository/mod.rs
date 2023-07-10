@@ -121,6 +121,7 @@ impl Repository<Article> for ArticleRepository {
         let find_options = FindOneOptions::builder()
             .projection(doc! {"_id": 0 })
             .max_time(Some(Duration::from_secs(3)))
+        
             .build();
 
         let cursor = collection
@@ -129,26 +130,9 @@ impl Repository<Article> for ArticleRepository {
         match cursor {
             Ok(article) => match article {
                 Some(art) => return Ok(art),
-                None => return Err(Error::new(Type::Internal, "Unknown error".to_string())),
+                None => return Err(Error::new(Type::NotFound, "Article not found, invalid ID".to_string())),
             },
-            Err(err) => match *err.kind {
-                error::ErrorKind::InvalidResponse { message, .. } => {
-                    return Err(Error::new(Type::Internal, message))
-                }
-                error::ErrorKind::InvalidArgument { message, .. } => {
-                    return Err(Error::new(Type::MalformedJSON, message))
-                }
-                error::ErrorKind::Authentication { message, .. } => {
-                    return Err(Error::new(Type::DuplicateKey, message))
-                }
-                error::ErrorKind::BsonDeserialization(err) => {
-                    return Err(Error::new(Type::MalformedJSON, err.to_string()))
-                }
-                error::ErrorKind::BsonSerialization(err) => {
-                    return Err(Error::new(Type::MalformedJSON, err.to_string()))
-                }
-                _ => return Err(Error::new(Type::Internal, "Unexpected error".to_string())),
-            },
+            Err(err) => return Err(Error::new(Type::Internal, err.to_string()))
         }
     }
 
@@ -161,6 +145,7 @@ impl Repository<Article> for ArticleRepository {
         let find_options = FindOptions::builder()
             .projection(doc! {"_id": 0 })
             .max_time(Some(Duration::from_secs(3)))
+            .max_await_time(Some(Duration::from_secs(3)))
             .limit(Some(size))
             .build();
 

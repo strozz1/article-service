@@ -10,7 +10,9 @@ use article::Article;
 use response::error::Error;
 use response::*;
 use std::sync::Mutex;
+use request::Request;
 
+mod request;
 mod article;
 mod response;
 
@@ -40,8 +42,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::clone(&data))
             .service(root)
             .service(create_article)
-            .service(web::resource("/api/find/{id}").route(web::get().to(find)))
-            .service(web::resource("/api/list/{size}").route(web::get().to(list)))
+            .service(find)
+            .service(list)
             .wrap(Logger::default())
     })
     .bind(&server_address)
@@ -58,13 +60,13 @@ async fn main() -> std::io::Result<()> {
 async fn root() -> impl Responder {
     HttpResponse::Ok().body("root directory")
 }
-
+#[get("/api/find")]
 async fn find(
-    article_id: web::Path<RequestId>,
+    article_id: web::Json<Request<String>>,
     repo: Data<Mutex<ArticleService>>,
 ) -> impl Responder {
     let service = repo.lock().unwrap(); // get repo from server
-    let result = service.get_article(article_id.id.to_string()).await;
+    let result = service.get_article(article_id.content.clone()).await;
     match result {
         //FIXME refactor error response
         Ok(accept) => HttpResponse::Ok().json(Response::new(Type::Ok, accept)),
@@ -74,20 +76,20 @@ async fn find(
 
 #[post("/api/createArticle")]
 async fn create_article(
-    json: web::Json<Article>,
+    json: web::Json<Request<Article>>,
     repo: Data<Mutex<ArticleService>>,
 ) -> impl Responder {
     let service = repo.lock().unwrap(); // get repo from server
-    let result = service.insert_article(json.0).await;
+    let result = service.insert_article(json.content.clone()).await;
     match result {
         Ok(accept) => HttpResponse::Ok().json(Response::new(Type::Ok, accept)),
         Err(err) => format_error(err)
     }
 }
-
-async fn list(size: web::Path<i64>, repo: Data<Mutex<ArticleService>>) -> impl Responder {
+#[get("/api/list")]
+async fn list(size: web::Json<Request<i64>>, repo: Data<Mutex<ArticleService>>) -> impl Responder {
     let service = repo.lock().unwrap(); // get repo from server
-    let result = service.list(size.clone()).await;
+    let result = service.list(size.content).await;
     match result{
         Ok(vector)=>{
            HttpResponse::Ok().json(Response::new_from_multiple(Type::Ok, vector))
@@ -95,10 +97,6 @@ async fn list(size: web::Path<i64>, repo: Data<Mutex<ArticleService>>) -> impl R
         Err(err)=>format_error(err)
     }
 }
-
-
-
-
 
 fn format_error(error: Error)-> HttpResponse{
 
@@ -121,5 +119,6 @@ fn format_error(error: Error)-> HttpResponse{
         }
         Type::Ok => HttpResponse::Ok().json(Response::new(Type::Ok, error)),
         Type::Write => HttpResponse::BadRequest().json(Response::new(Type::Write, error)),
+        Type::NotFound =>  HttpResponse::NotFound().json(Response::new(Type::NotFound, error)),
     }
 }
