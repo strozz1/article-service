@@ -1,0 +1,18 @@
+parameters:
+  - name: id
+    description: The id of an article from the database
+    in: path
+    required: true
+    schema:
+      type: number
+get:
+  summary: returns an article object from the id obtained in the request
+  responses:
+    '200':
+      $ref: '#/components/responses/ok'
+    '500':
+      $ref: '#/components/responses/internal'
+    '404':
+      $ref: '#/components/responses/notfound'
+    default:
+      $ref: '#/components/responses/default'

@@ -1,0 +1,8 @@
+'ok':
+  $ref: ok.yaml
+'notfound':
+  $ref: notfound.yaml
+'internal':
+  $ref: internal.yaml
+'default':
+  $ref: default.yaml

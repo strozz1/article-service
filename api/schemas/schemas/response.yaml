@@ -1,0 +1,26 @@
+description: Response object for a request
+type: object
+required:
+  - code
+  - datetime
+properties:
+  code:
+    description: the response code from the operation
+    type: number
+    enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+  datetime:
+    description: the datetime of the request
+    type: string
+  article:
+    description: the article to retreive in case of success
+    $ref: '#/components/schemas/article'
+  error:
+    description: the error to retreive in case of failure
+    $ref: '#/components/schemas/error'

@@ -1,0 +1,5 @@
+description: No articles returned or were found
+content:
+  application/json:
+    schema:
+      $ref: '#/components/schemas/response'
