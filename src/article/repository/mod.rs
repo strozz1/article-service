@@ -4,17 +4,18 @@ use async_trait::async_trait;
 use mongodb::{
     bson::doc,
     error,
-    options::{ClientOptions, FindOneOptions, FindOptions, InsertOneOptions, ServerAddress},
+    options::{ClientOptions, FindOneOptions, FindOptions, ServerAddress},
     results::InsertOneResult,
     Client, Collection,
 };
 use serde::Serialize;
 
+use crate::response::error::ErrorType;
+
 use super::super::response;
 use super::Article;
 use response::accept::Accept;
 use response::error::Error;
-use response::Type;
 
 #[derive(Clone)]
 pub struct ArticleRepository {
@@ -77,33 +78,33 @@ impl Repository<Article> for ArticleRepository {
                 Ok(_) => Ok(Accept::new(response.id, "Article saved".to_string())),
                 Err(err) => match *err.kind {
                     error::ErrorKind::InvalidResponse { message, .. } => {
-                        return Err(Error::new(Type::Internal, message))
+                        return Err(Error::new(ErrorType::Internal, message))
                     }
                     error::ErrorKind::InvalidArgument { message, .. } => {
-                        return Err(Error::new(Type::MalformedJSON, message))
+                        return Err(Error::new(ErrorType::MalformedJSON, message))
                     }
                     error::ErrorKind::Authentication { message, .. } => {
-                        return Err(Error::new(Type::Internal, message))
+                        return Err(Error::new(ErrorType::Internal, message))
                     }
                     error::ErrorKind::BsonDeserialization(err) => {
-                        return Err(Error::new(Type::MalformedJSON, err.to_string()))
+                        return Err(Error::new(ErrorType::MalformedJSON, err.to_string()))
                     }
                     error::ErrorKind::BsonSerialization(err) => {
-                        return Err(Error::new(Type::MalformedJSON, err.to_string()))
+                        return Err(Error::new(ErrorType::MalformedJSON, err.to_string()))
                     }
                     error::ErrorKind::Write(err) => match err {
                         error::WriteFailure::WriteConcernError(e) => {
-                            return Err(Error::new(Type::Write, e.message))
+                            return Err(Error::new(ErrorType::DuplicateKey, e.message))
                         }
                         error::WriteFailure::WriteError(e) => {
-                            return Err(Error::new(Type::Write, e.message))
+                            return Err(Error::new(ErrorType::DuplicateKey, e.message))
                         }
-                        _ => return Err(Error::new(Type::Internal, "Unknown error".to_string())),
+                        _ => return Err(Error::new(ErrorType::Internal, "Unknown error".to_string())),
                     },
-                    _ => return Err(Error::new(Type::Internal, "Unexpected error".to_string())),
+                    _ => return Err(Error::new(ErrorType::Internal, "Unexpected error".to_string())),
                 },
             },
-            Err(err) => Err(Error::new(Type::Internal, err.to_string())), // error en tokio
+            Err(err) => Err(Error::new(ErrorType::Internal, err.to_string())), // error en tokio
         }
     }
 
@@ -130,9 +131,9 @@ impl Repository<Article> for ArticleRepository {
         match cursor {
             Ok(article) => match article {
                 Some(art) => return Ok(art),
-                None => return Err(Error::new(Type::NotFound, "Article not found, invalid ID".to_string())),
+                None => return Err(Error::new(ErrorType::NotFound, "Article not found, invalid ID".to_string())),
             },
-            Err(err) => return Err(Error::new(Type::Internal, err.to_string()))
+            Err(err) => return Err(Error::new(ErrorType::Internal, err.to_string()))
         }
     }
 

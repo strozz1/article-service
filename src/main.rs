@@ -7,15 +7,14 @@ use actix_web::{
 use article::repository::*;
 use article::service::*;
 use article::Article;
+use request::Request;
 use response::error::Error;
 use response::*;
 use std::sync::Mutex;
-use request::Request;
 
-mod request;
 mod article;
+mod request;
 mod response;
-
 
 //TODO FUTURE change api for only access data from json not url
 #[actix_web::main]
@@ -69,7 +68,7 @@ async fn find(
     let result = service.get_article(article_id.content.clone()).await;
     match result {
         //FIXME refactor error response
-        Ok(accept) => HttpResponse::Ok().json(Response::new(Type::Ok, accept)),
+        Ok(accept) => HttpResponse::Ok().json(Response::new(RequestStatus::Ok, accept)),
         Err(err) => format_error(err),
     }
 }
@@ -82,43 +81,35 @@ async fn create_article(
     let service = repo.lock().unwrap(); // get repo from server
     let result = service.insert_article(json.content.clone()).await;
     match result {
-        Ok(accept) => HttpResponse::Ok().json(Response::new(Type::Ok, accept)),
-        Err(err) => format_error(err)
+        Ok(accept) => HttpResponse::Ok().json(Response::new(RequestStatus::Ok, accept)),
+        Err(err) => format_error(err),
     }
 }
 #[get("/api/list")]
 async fn list(size: web::Json<Request<i64>>, repo: Data<Mutex<ArticleService>>) -> impl Responder {
     let service = repo.lock().unwrap(); // get repo from server
     let result = service.list(size.content).await;
-    match result{
-        Ok(vector)=>{
-           HttpResponse::Ok().json(Response::new_from_multiple(Type::Ok, vector))
-        },
-        Err(err)=>format_error(err)
+    match result {
+        Ok(vector) => {
+            HttpResponse::Ok().json(Response::new_from_multiple(RequestStatus::Ok, vector))
+        }
+        Err(err) => format_error(err),
     }
 }
 
-fn format_error(error: Error)-> HttpResponse{
-
+fn format_error(error: Error) -> HttpResponse {
     //TODO refactor clearly
-    match error.error_type {
-        Type::BadRequest => {
-            HttpResponse::BadRequest().json(Response::new(Type::BadRequest, error))
+    match error.code {
+        0 => HttpResponse::NotAcceptable().json(Response::new(RequestStatus::InvalidId, error)),
+        1 => HttpResponse::NotFound().json(Response::new(RequestStatus::NotFound, error)),
+        2 => HttpResponse::BadRequest().json(Response::new(RequestStatus::Database, error)),
+        3 => {
+            HttpResponse::InternalServerError().json(Response::new(RequestStatus::Internal, error))
         }
-        Type::MalformedJSON => {
-            HttpResponse::PreconditionRequired().json(Response::new(Type::MalformedJSON, error))
+        4 => HttpResponse::BadRequest().json(Response::new(RequestStatus::DuplicateKey, error)),
+        5 => HttpResponse::RequestTimeout().json(Response::new(RequestStatus::Timeout, error)),
+        _ => {
+            HttpResponse::InternalServerError().json(Response::new(RequestStatus::Internal, error))
         }
-        Type::Database => {
-            HttpResponse::NotAcceptable().json(Response::new(Type::Database, error))
-        }
-        Type::Internal => {
-            HttpResponse::InternalServerError().json(Response::new(Type::Internal, error))
-        }
-        Type::DuplicateKey => {
-            HttpResponse::BadRequest().json(Response::new(Type::DuplicateKey, error))
-        }
-        Type::Ok => HttpResponse::Ok().json(Response::new(Type::Ok, error)),
-        Type::Write => HttpResponse::BadRequest().json(Response::new(Type::Write, error)),
-        Type::NotFound =>  HttpResponse::NotFound().json(Response::new(Type::NotFound, error)),
     }
 }

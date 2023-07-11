@@ -13,7 +13,7 @@ pub mod accept;
 /// Timestamp: date and time from the request
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response<T> {
-    code: u8,
+    code: u16,
     description: String,
     timestamp: DateTime,
     content_size: usize,
@@ -24,7 +24,7 @@ impl<T> Response<T> {
     ///Returns a new instance of Response struct with a type and a content
     ///
     /// Content should implement Serialize and Deserialize
-    pub fn new(response_type: Type, content: T) -> Self {
+    pub fn new(response_type: RequestStatus, content: T) -> Self {
         let code = response_type.value();
         let description = response_type.description().to_string();
 
@@ -41,7 +41,7 @@ impl<T> Response<T> {
         }
     }
 
-    pub fn new_from_multiple(response_type: Type, vector: Vec<T>) -> Self {
+    pub fn new_from_multiple(response_type: RequestStatus, vector: Vec<T>) -> Self {
         let code = response_type.value();
         let description = response_type.description().to_string();
         let timestamp = DateTime::now();
@@ -60,7 +60,7 @@ impl<T> Response<T> {
 ///
 /// One for getting the int value of the code and another one for the description
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Type {
+pub enum RequestStatus {
     //TODO change this to http type response
     Ok,
     BadRequest,
@@ -68,34 +68,39 @@ pub enum Type {
     Database,
     Internal,
     DuplicateKey,
-    Write,
-    NotFound
+    InvalidId,
+    NotFound,
+    Timeout
 }
-impl Type {
+impl RequestStatus {
     /// Returns the value from the code
-    pub fn value(&self) -> u8 {
+    pub fn value(&self) -> u16 {
         match *self {
-            Type::Ok => 0,
-            Type::BadRequest => 1,
-            Type::MalformedJSON => 2,
-            Type::Database => 3,
-            Type::Internal => 4,
-            Type::DuplicateKey => 5,
-            Type::Write => 6,
-            Type::NotFound => 7 
+            RequestStatus::Ok => 200,
+            RequestStatus::BadRequest => 400,
+            RequestStatus::MalformedJSON => 2,
+            RequestStatus::Database => 3,
+            RequestStatus::Internal => 500,
+            RequestStatus::DuplicateKey => 412,
+            RequestStatus::InvalidId => 6,
+            RequestStatus::Timeout => 408,
+            RequestStatus::NotFound => 404 
         }
     }
+
+    
     /// returns the description for each response
     pub fn description(&self) -> &str {
         match *self {
-            Type::Ok => "Response is correct",
-            Type::BadRequest => "The request is not correctly formed.",
-            Type::MalformedJSON => "The JSON is malformed",
-            Type::Database => "There is a database error",
-            Type::Internal => "Internal server error occurred",
-            Type::DuplicateKey => "Duplicate Key conflict",
-            Type::Write => "There is a write error",
-            Type::NotFound => "User not found"
+            RequestStatus::Ok => "Response is correct",
+            RequestStatus::BadRequest => "The request is not correctly formed.",
+            RequestStatus::MalformedJSON => "The JSON is malformed",
+            RequestStatus::Database => "There is a database error",
+            RequestStatus::Internal => "Internal server error occurred",
+            RequestStatus::DuplicateKey => "Duplicate Key conflict",
+            RequestStatus::InvalidId => "The id provided is invalid",
+            RequestStatus::NotFound => "User not found",
+            RequestStatus::Timeout => "Request timeout"
         }
     }
 }
