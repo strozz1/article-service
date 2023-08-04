@@ -70,45 +70,52 @@ This json represents the structure of the error type. The code represents the st
 | 4  | DuplicateKey  |
 | 5  | Timeout       |
 
-### Endpoints
- - **/api/find**
+## Endpoints
+### **/api/find**
 
-    This endpoints delivers an article with the same id as given in the request.
+This endpoints delivers an article with the same id as given in the request.
 
-    **Request json**
-    ```json
+**Request json**
+```json
     {
         "content": string
     }
-    ```
-    The `content` parameter of the request represents the id of the article you want to retrieve.
-    The server returns the response object mentioned before with 2 content posibble values, the article or the error 
-- **/api/list**
+```
+The `content` parameter of the request represents the id of the article you want to retrieve.
+The server returns the response object mentioned before with 2 content posibble values, the article or the error 
+### **/api/list**
 
-    This endpoints delivers an article with the same id as given in the request.
+This endpoints delivers an article with the same id as given in the request.
 
-    **Request json**
-    ```json
+**Request json**
+```json
     {
         "content": string
     }
-    ```
-    The `content` parameter of the request represents the amount of articles you want to retrieve from the database.
-    The server returns the response object mentioned before with 2 content posibble values, an array of articles or the error of the request.
+```
+The `content` parameter of the request represents the amount of articles you want to retrieve from the database.
+The server returns the response object mentioned before with 2 content posibble values, an array of articles or the error of the request.
 
-- **/api/insert**
+### **/api/insert**
 
-    This endpoints delivers an article with the same id as given in the request.
+This endpoints delivers an article with the same id as given in the request.
 
-    **Request json**
-    ```json
+ **Request json**
+```json
     {
-        "content": string
+        "content":
+            {
+            "id": string,
+            "author": string,
+            "created_at": DateTime,
+            "last_update": DateTime,
+            "content": string
+            }
     }
-    ```
-    The `content` parameter of the request represents the article which you want to insert in the databse. The schema to follow is the mentioned before.
+```
+The `content` parameter of the request represents the article which you want to insert in the databse. The schema to follow is the mentioned before.
 
-    This returns a response object with the article id if successful or the error 
+This returns a response object with the article id if successful or the error 
 
 
 
