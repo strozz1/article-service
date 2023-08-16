@@ -1,4 +1,5 @@
 use actix_web::middleware::Logger;
+use actix_web::HttpRequest;
 use actix_web::{
     get, post,
     web::{self, Data},
@@ -7,30 +8,28 @@ use actix_web::{
 use article::repository::*;
 use article::service::*;
 use article::Article;
-use request::Request;
-use response::error::Error;
-use response::*;
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 mod article;
-mod request;
-mod response;
+mod configurations;
 
 //TODO FUTURE change api for only access data from json not url
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    //config
-    dotenv::dotenv().ok();
-    let server_port = std::env::var("PORT").unwrap();
-    let server_address = format!("localhost:{}", server_port);
+    let app_config = configurations::get_app_config();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let db_host = std::env::var("DB_HOST").unwrap();
-    let db_port: u16 = std::env::var("DB_PORT").unwrap().parse().unwrap();
+    let server_address = format!("{}:{}", app_config.host.clone(), app_config.port.clone());
 
     println!("-Article service started at address {}.", server_address);
 
-    let repo = ArticleRepository::new(db_host, db_port);
+    let repo = ArticleRepository::new(
+        app_config.db_config.host.clone(),
+        app_config.db_config.port.clone(),
+        app_config.db_config.db.clone(),
+        app_config.db_config.collection.clone(),
+    );
     let service = ArticleService::new(repo);
     //TODO check db status here
 
@@ -39,7 +38,6 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(Data::clone(&data))
-            .service(root)
             .service(create_article)
             .service(find)
             .service(list)
@@ -55,61 +53,72 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
-#[get("/api")]
-async fn root() -> impl Responder {
-    HttpResponse::Ok().body("root directory")
-}
-#[get("/api/find")]
-async fn find(
-    article_id: web::Json<Request<String>>,
-    repo: Data<Mutex<ArticleService>>,
-) -> impl Responder {
-    let service = repo.lock().unwrap(); // get repo from server
-    let result = service.get_article(article_id.content.clone()).await;
-    match result {
-        //FIXME refactor error response
-        Ok(accept) => HttpResponse::Ok().json(Response::new(RequestStatus::Ok, accept)),
-        Err(err) => format_error(err),
+
+#[get("/api/get")]
+async fn find(request: HttpRequest, repo: Data<Mutex<ArticleService>>) -> impl Responder {
+    let service = repo.lock().unwrap();
+    let params = web::Query::<HashMap<String, String>>::from_query(request.query_string());
+    match params {
+        Ok(query) => {
+            let id = match query.get("id") {
+                Some(e) => e,
+                None => return HttpResponse::BadRequest().json("No ID param found"),
+            };
+            let result = service.get_article(id.to_string()).await;
+            match result {
+                //FIXME refactor error response
+                Ok(accept) => {
+                    if let Some(article) = accept {
+                        HttpResponse::Ok().json(article)
+                    } else {
+                        HttpResponse::BadRequest().json("Article not found")
+                    }
+                }
+                Err(err) => format_error(err),
+            }
+        }
+        Err(e) => HttpResponse::BadRequest().json(e.to_string()),
     }
 }
 
 #[post("/api/createArticle")]
 async fn create_article(
-    json: web::Json<Request<Article>>,
+    article: web::Json<Article>,
     repo: Data<Mutex<ArticleService>>,
 ) -> impl Responder {
-    let service = repo.lock().unwrap(); // get repo from server
-    let result = service.insert_article(json.content.clone()).await;
+    let service = repo.lock().unwrap();
+    let result = service.insert_article(article.clone()).await;
     match result {
-        Ok(accept) => HttpResponse::Ok().json(Response::new(RequestStatus::Ok, accept)),
+        Ok(id) => HttpResponse::Ok().json(id),
         Err(err) => format_error(err),
     }
 }
 #[get("/api/list")]
-async fn list(size: web::Json<Request<i64>>, repo: Data<Mutex<ArticleService>>) -> impl Responder {
-    let service = repo.lock().unwrap(); // get repo from server
-    let result = service.list(size.content).await;
-    match result {
-        Ok(vector) => {
-            HttpResponse::Ok().json(Response::new_from_multiple(RequestStatus::Ok, vector))
-        }
-        Err(err) => format_error(err),
+async fn list(request: HttpRequest, repo: Data<Mutex<ArticleService>>) -> impl Responder {
+    let service = repo.lock().unwrap();
+
+    let params = web::Query::<HashMap<String, String>>::from_query(request.query_string());
+    match params {
+        Ok(query)=>{
+            let size = match query.get("size") {
+                Some(e) => match e.parse::<i64>(){
+                    Ok(res)=>res,
+                    Err(_)=> return HttpResponse::BadRequest().json("The size param must be a number")
+                },
+                None => return HttpResponse::BadRequest().json("No size param found"),
+            };
+            let result = service.list(size).await;
+            match result {
+                Ok(vector) => HttpResponse::Ok().json(vector),
+                Err(err) => format_error(err),
+            }
+        },
+        Err(e)=> HttpResponse::BadRequest().json(e.to_string())
     }
+    
 }
 
-fn format_error(error: Error) -> HttpResponse {
+fn format_error(error: mongodb::error::Error) -> HttpResponse {
     //TODO refactor clearly
-    match error.code {
-        0 => HttpResponse::NotAcceptable().json(Response::new(RequestStatus::InvalidId, error)),
-        1 => HttpResponse::NotFound().json(Response::new(RequestStatus::NotFound, error)),
-        2 => HttpResponse::BadRequest().json(Response::new(RequestStatus::Database, error)),
-        3 => {
-            HttpResponse::InternalServerError().json(Response::new(RequestStatus::Internal, error))
-        }
-        4 => HttpResponse::BadRequest().json(Response::new(RequestStatus::DuplicateKey, error)),
-        5 => HttpResponse::RequestTimeout().json(Response::new(RequestStatus::Timeout, error)),
-        _ => {
-            HttpResponse::InternalServerError().json(Response::new(RequestStatus::Internal, error))
-        }
-    }
+    HttpResponse::BadRequest().json(error.to_string())
 }

@@ -1,0 +1,8 @@
+host = "localhost"
+port = 2425
+
+[db_config]
+host = "localhost"
+port = 27018
+db = "test"
+collection = "articles"
